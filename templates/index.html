@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>workout-weaver · weekly workout generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1115; --panel: #1a1d24; --border: #2a2f3a; --text: #e6e8ec; --muted: #8b95a5;
+      --accent: #8ab4ff; --green: #5dd39e; --amber: #f5b14a; --red: #f06f5e; --pill-bg: #232732;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+           background: var(--bg); color: var(--text); }
+    header { padding: 20px 28px; border-bottom: 1px solid var(--border); }
+    header h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+    header .sub { color: var(--muted); font-size: 13px; }
+    main { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; padding: 24px; max-width: 1400px; margin: 0 auto; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    textarea { width: 100%; min-height: 220px; background: #0c0e13; color: var(--text); border: 1px solid var(--border);
+               border-radius: 8px; padding: 12px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+               resize: vertical; }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    button { background: var(--accent); color: #0a1320; border: 0; padding: 9px 16px; font-weight: 600;
+             border-radius: 8px; cursor: pointer; font-size: 13px; }
+    button.secondary { background: var(--pill-bg); color: var(--text); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pill { background: var(--pill-bg); padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--muted); }
+    .score-band { font-size: 28px; font-weight: 700; margin-right: 8px; }
+    .verdict { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .verdict.ready_to_train { background: rgba(93, 211, 158, 0.18); color: var(--green); }
+    .verdict.mostly_ready { background: rgba(138, 180, 255, 0.18); color: var(--accent); }
+    .verdict.needs_review { background: rgba(245, 177, 74, 0.18); color: var(--amber); }
+    .verdict.tight_but_usable { background: rgba(245, 177, 74, 0.18); color: var(--amber); }
+    .verdict.plan_revise { background: rgba(240, 111, 94, 0.18); color: var(--red); }
+
+    .axis { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+    .axis .name { width: 180px; color: var(--muted); font-size: 12px; text-transform: capitalize; }
+    .axis .bar { flex: 1; height: 8px; background: #21252c; border-radius: 999px; overflow: hidden; }
+    .axis .bar > div { height: 100%; background: var(--accent); }
+    .axis .val { width: 50px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+    .day { background: #0c0e13; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .day.rest { opacity: 0.55; }
+    .day-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .day-head h4 { margin: 0; font-size: 14px; }
+    .day-focus { color: var(--muted); font-size: 11px; }
+    .block { border-left: 3px solid var(--border); padding: 4px 0 4px 12px; margin: 8px 0; }
+    .block-name { font-weight: 600; font-size: 12px; }
+    .block-meta { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+    .block ul { margin: 4px 0 0; padding-left: 18px; }
+    .block li { font-size: 12.5px; }
+
+    .flag { padding: 10px 12px; border-radius: 8px; margin: 6px 0; font-size: 13px; }
+    .flag.high { background: rgba(240, 111, 94, 0.13); border-left: 4px solid var(--red); }
+    .flag.medium { background: rgba(245, 177, 74, 0.13); border-left: 4px solid var(--amber); }
+    .flag.low { background: rgba(138, 180, 255, 0.10); border-left: 4px solid var(--accent); }
+    .flag-title { font-weight: 600; }
+    .flag-desc { color: var(--muted); margin-top: 4px; font-size: 12.5px; }
+    .flag-sug { margin-top: 4px; font-size: 12.5px; color: var(--accent); }
+
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 12.5px; }
+    .profile-grid .k { color: var(--muted); }
+
+    .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .examples button { background: var(--pill-bg); color: var(--text); padding: 5px 9px; font-size: 11.5px; font-weight: 500; }
+
+    details { margin-top: 10px; }
+    summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
+
+    .session-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .empty { color: var(--muted); padding: 30px; text-align: center; font-style: italic; }
+
+    h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+    h3 { margin: 16px 0 8px; font-size: 14px; }
+    a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>workout-weaver</h1>
+    <div class="sub">Local-first weekly workout generator — paste a brief, get a 7-day plan with overload, risk flags, and a 0–100 readiness score.</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Brief</h2>
+      <textarea id="brief" placeholder="E.g.  I'm an intermediate lifter, 3-4 days/week, ~60 min sessions. Goal is hypertrophy in upper body. I have a barbell + dumbbells at my home gym. I tweak my lower back on heavy deadlifts and my right shoulder is grumpy on overhead work."></textarea>
+      <div class="examples">
+        <button type="button" data-sample="beginner-home">Beginner · bodyweight · 3×</button>
+        <button type="button" data-sample="intermediate-gym">Intermediate · gym · 4× strength</button>
+        <button type="button" data-sample="hypertrophy-5day">Hypertrophy · 5-day PPL</button>
+        <button type="button" data-sample="endurance">Endurance · 5× cardio</button>
+        <button type="button" data-sample="injured-older">Injuries + 60+</button>
+        <button type="button" data-sample="fatloss-home">Fat loss · home · 4×</button>
+      </div>
+      <div class="row">
+        <button id="go" type="button">Generate Plan</button>
+        <button id="clear" class="secondary" type="button">Clear</button>
+        <span class="pill" id="status">No plan yet</span>
+      </div>
+
+      <h3>Recent Sessions</h3>
+      <div id="sessions"></div>
+    </section>
+
+    <section class="panel" id="result">
+      <div class="empty">Run a brief on the left to see your weekly plan here.</div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
